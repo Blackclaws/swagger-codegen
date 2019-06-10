@@ -1,0 +1,92 @@
+using System;
+using System.Collections.Generic;
+using {{clientPackage}};
+{{#hasImport}}using {{modelPackage}};
+{{/hasImport}}
+
+namespace {{apiPackage}}
+{
+    {{#operations}}
+    /// <summary>
+    /// Represents a collection of functions to interact with the API endpoints
+    /// </summary>
+    public interface I{{classname}}
+    {
+        {{#operation}}
+        /// <summary>
+        /// {{summary}} {{notes}}
+        /// </summary>
+        {{#allParams}}/// <param name="{{paramName}}">{{description}}</param>{{/allParams}}
+        /// <returns>{{#returnType}}IObservable<{{{returnType}}}>{{/returnType}}{{^returnType}}IObservable<bool>{{/returnType}}</returns>
+        {{#returnType}}IObservable<{{{returnType}}}>{{/returnType}}{{^returnType}}IObservable<bool>{{/returnType}} {{nickname}} ({{#allParams}}{{{dataType}}} {{paramName}}{{#hasMore}}, {{/hasMore}}{{/allParams}});
+        {{/operation}}
+    }
+  
+    /// <summary>
+    /// Represents a collection of functions to interact with the API endpoints
+    /// </summary>
+    public class {{classname}} : I{{classname}}
+    {
+        private Configuration Settings { get; set; }
+        
+        /// <summary>
+        /// Initializes a new instance of the <see cref="{{classname}}"/> class.
+        /// </summary>
+        /// <returns></returns>
+        public {{classname}}(Configuration settings)
+        {
+            Settings = settings;
+        }
+    
+        {{#operation}}
+        /// <summary>
+        /// {{summary}} {{notes}}
+        /// </summary>
+        {{#allParams}}/// <param name="{{paramName}}">{{description}}</param> 
+        {{/allParams}}/// <returns>{{#returnType}}IObservable<{{{returnType}}}>{{/returnType}}{{^returnType}}IObservable<bool>{{/returnType}}</returns>            
+        public {{#returnType}}IObservable<{{{returnType}}}>{{/returnType}}{{^returnType}}IObservable<bool>{{/returnType}} {{nickname}} ({{#allParams}}{{{dataType}}} {{paramName}},{{/allParams}} IProgress<float> progressIndicator = null)
+        {
+            {{#allParams}}{{#required}}
+            // verify the required parameter '{{paramName}}' is set
+            if ({{paramName}} == null) return null;//throw new ApiException(400, "Missing required parameter '{{paramName}}' when calling {{nickname}}");
+            {{/required}}{{/allParams}}
+    
+            var path = "{{{path}}}";
+            path = path.Replace("{format}", "json");
+            {{#pathParams}}path = path.Replace("{" + "{{baseName}}" + "}", {{{paramName}}}.ToString());
+            {{/pathParams}}
+    
+            var queryParams = new Dictionary<String, String>();
+            var headerParams = new Dictionary<String, String>();
+            var formParams = new Dictionary<String, String>();
+            var fileParams = new Dictionary<String, byte[]>();
+            String postBody = null;
+    
+            {{#queryParams}} if ({{paramName}} != null) queryParams.Add("{{baseName}}", {{paramName}}.ToString()); // query parameter
+            {{/queryParams}}
+            {{#headerParams}} if ({{paramName}} != null) headerParams.Add("{{baseName}}", {{paramName}}.ToString()); // header parameter
+            {{/headerParams}}
+            {{#formParams}}if ({{paramName}} != null) {{#isFile}}fileParams.Add("{{baseName}}", {{paramName}});{{/isFile}}{{^isFile}}formParams.Add("{{baseName}}", {{paramName}}.ToString()); // form parameter{{/isFile}}
+            {{/formParams}}
+            {{#bodyParam}}postBody =JsonConvert.SerializeObject({{paramName}}); // http body (model) parameter
+            {{/bodyParam}}
+    
+            // authentication setting, if any
+            String[] authSettings = new String[] { {{#authMethods}}"{{name}}"{{#hasMore}}, {{/hasMore}}{{/authMethods}} };
+    
+            // make the HTTP request
+            return ApiClient.CallApi(path, "{{httpMethod}}", queryParams, postBody, headerParams, formParams, fileParams, authSettings, progressIndicator).Select(webRequest => {
+                if(webRequest.isHttpError) {
+                    Debug.Log("API Error in {{nickname}}");
+                    Debug.Log(webRequest.error);
+                    throw new ApiException (webRequest.responseCode, "Error calling {{nickname}}: " + webRequest.error, webRequest.error);
+                }
+                {{#returnType}}return ({{{returnType}}}) ApiClient.Deserialize(webRequest.downloadHandler, typeof({{{returnType}}}));{{/returnType}}
+                {{^returnType}}return true;{{/returnType}}
+            });
+        }
+    
+        {{/operation}}
+    }
+    {{/operations}}
+}
