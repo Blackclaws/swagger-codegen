@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using {{clientPackage}};
+using UniRx;
+using UnityEngine;
 {{#hasImport}}using {{modelPackage}};
 {{/hasImport}}
 
@@ -16,9 +18,10 @@ namespace {{apiPackage}}
         /// <summary>
         /// {{summary}} {{notes}}
         /// </summary>
-        {{#allParams}}/// <param name="{{paramName}}">{{description}}</param>{{/allParams}}
+        {{#allParams}}/// <param name="{{paramName}}">{{description}}</param>
+        {{/allParams}} /// <param name="progressIndicator">Callback for reporting progress.</param>
         /// <returns>{{#returnType}}IObservable<{{{returnType}}}>{{/returnType}}{{^returnType}}IObservable<bool>{{/returnType}}</returns>
-        {{#returnType}}IObservable<{{{returnType}}}>{{/returnType}}{{^returnType}}IObservable<bool>{{/returnType}} {{nickname}} ({{#allParams}}{{{dataType}}} {{paramName}}{{#hasMore}}, {{/hasMore}}{{/allParams}});
+        {{#returnType}}IObservable<{{{returnType}}}>{{/returnType}}{{^returnType}}IObservable<bool>{{/returnType}} {{nickname}} ({{#allParams}}{{{dataType}}} {{paramName}}, {{/allParams}}IProgress<float> progressIndicator = null);
         {{/operation}}
     }
   
@@ -27,15 +30,12 @@ namespace {{apiPackage}}
     /// </summary>
     public class {{classname}} : I{{classname}}
     {
-        private Configuration Settings { get; set; }
-        
         /// <summary>
         /// Initializes a new instance of the <see cref="{{classname}}"/> class.
         /// </summary>
         /// <returns></returns>
-        public {{classname}}(Configuration settings)
+        public {{classname}}()
         {
-            Settings = settings;
         }
     
         {{#operation}}
@@ -43,8 +43,9 @@ namespace {{apiPackage}}
         /// {{summary}} {{notes}}
         /// </summary>
         {{#allParams}}/// <param name="{{paramName}}">{{description}}</param> 
-        {{/allParams}}/// <returns>{{#returnType}}IObservable<{{{returnType}}}>{{/returnType}}{{^returnType}}IObservable<bool>{{/returnType}}</returns>            
-        public {{#returnType}}IObservable<{{{returnType}}}>{{/returnType}}{{^returnType}}IObservable<bool>{{/returnType}} {{nickname}} ({{#allParams}}{{{dataType}}} {{paramName}},{{/allParams}} IProgress<float> progressIndicator = null)
+        {{/allParams}} /// <param name="progressIndicator">Callback for reporting progress.</param>
+        /// <returns>{{#returnType}}IObservable<{{{returnType}}}>{{/returnType}}{{^returnType}}IObservable<bool>{{/returnType}}</returns>            
+        public {{#returnType}}IObservable<{{{returnType}}}>{{/returnType}}{{^returnType}}IObservable<bool>{{/returnType}} {{nickname}} ({{#allParams}}{{{dataType}}} {{paramName}}, {{/allParams}}IProgress<float> progressIndicator = null)
         {
             {{#allParams}}{{#required}}
             // verify the required parameter '{{paramName}}' is set
@@ -53,7 +54,8 @@ namespace {{apiPackage}}
     
             var path = "{{{path}}}";
             path = path.Replace("{format}", "json");
-            {{#pathParams}}path = path.Replace("{" + "{{baseName}}" + "}", {{{paramName}}}.ToString());
+            {{#pathParams}}
+            path = path.Replace("{" + "{{baseName}}" + "}", {{{paramName}}}.ToString());
             {{/pathParams}}
     
             var queryParams = new Dictionary<String, String>();
@@ -62,20 +64,24 @@ namespace {{apiPackage}}
             var fileParams = new Dictionary<String, byte[]>();
             String postBody = null;
     
-            {{#queryParams}} if ({{paramName}} != null) queryParams.Add("{{baseName}}", {{paramName}}.ToString()); // query parameter
+            {{#queryParams}} 
+            if ({{paramName}} != null) queryParams.Add("{{baseName}}", {{paramName}}.ToString()); // query parameter 
             {{/queryParams}}
-            {{#headerParams}} if ({{paramName}} != null) headerParams.Add("{{baseName}}", {{paramName}}.ToString()); // header parameter
+            {{#headerParams}} 
+            if ({{paramName}} != null) headerParams.Add("{{baseName}}", {{paramName}}.ToString()); // header parameter
             {{/headerParams}}
-            {{#formParams}}if ({{paramName}} != null) {{#isFile}}fileParams.Add("{{baseName}}", {{paramName}});{{/isFile}}{{^isFile}}formParams.Add("{{baseName}}", {{paramName}}.ToString()); // form parameter{{/isFile}}
+            {{#formParams}}
+            if ({{paramName}} != null) {{#isFile}}fileParams.Add("{{baseName}}", {{paramName}});{{/isFile}}{{^isFile}}formParams.Add("{{baseName}}", {{paramName}}.ToString()); // form parameter{{/isFile}}
             {{/formParams}}
-            {{#bodyParam}}postBody =JsonConvert.SerializeObject({{paramName}}); // http body (model) parameter
+            {{#bodyParam}}
+            postBody = ApiClient.Serialize({{paramName}}); // http body (model) parameter
             {{/bodyParam}}
     
             // authentication setting, if any
             String[] authSettings = new String[] { {{#authMethods}}"{{name}}"{{#hasMore}}, {{/hasMore}}{{/authMethods}} };
     
             // make the HTTP request
-            return ApiClient.CallApi(path, "{{httpMethod}}", queryParams, postBody, headerParams, formParams, fileParams, authSettings, progressIndicator).Select(webRequest => {
+            return Configuration.DefaultApiClient.CallApi(path, "{{httpMethod}}", queryParams, postBody, headerParams, formParams, fileParams, authSettings, progressIndicator).Select(webRequest => {
                 if(webRequest.isHttpError) {
                     Debug.Log("API Error in {{nickname}}");
                     Debug.Log(webRequest.error);

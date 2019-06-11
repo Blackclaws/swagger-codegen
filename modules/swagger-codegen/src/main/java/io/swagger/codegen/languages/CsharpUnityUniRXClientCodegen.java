@@ -41,6 +41,8 @@ public class CsharpUnityUniRXClientCodegen extends AbstractCSharpCodegen {
         cliOptions.add(new CliOption(CLIENT_PACKAGE,
                 "C# client package name (convention: Camel.Case).")
                 .defaultValue(clientPackage));
+                
+        typeMapping.put("file", "byte[]");
     }
 
     @Override

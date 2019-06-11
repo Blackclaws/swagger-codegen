@@ -53,6 +53,7 @@ namespace {{clientPackage}}
         /// <param name="formParams">Form parameters.</param>
         /// <param name="fileParams">File parameters.</param>
         /// <param name="authSettings">Authentication settings.</param>
+        /// <param name="progressIndicator">Callback for reporting progress.</param>
         /// <returns>IObservable<UnityWebRequest></returns>
         public IObservable<UnityWebRequest> CallApi(String path, string method, Dictionary<String, String> queryParams, String postBody,
             Dictionary<String, String> headerParams, Dictionary<String, String> formParams, 
@@ -63,10 +64,10 @@ namespace {{clientPackage}}
             if(method != "POST" && method != "PUT") {
                 // add query parameter, if any
                 foreach(var param in queryParams)
-                    builder.AddParameter(param.Key, param.Value);
+                    queryBuilder.AddParameter(param.Key, param.Value);
             }
         
-            var request = new UnityWebRequest(UnityWebRequest.EscapeURL(builder.Query));
+            var request = new UnityWebRequest(UnityWebRequest.EscapeURL(queryBuilder.Query));
             
             request.method = method;
    
@@ -86,7 +87,7 @@ namespace {{clientPackage}}
                 
                 if (postBody != null) {
                     List<IMultipartFormSection> formData = new List<IMultipartFormSection>();
-                    formData.Add(new MultipartFormDataSection(param.Key, param.Value, "application/json"));
+                    formData.Add(new MultipartFormDataSection("", postBody, "application/json"));
                     request.uploadHandler = new UploadHandlerRaw(UnityWebRequest.SerializeFormSections(formData, UnityWebRequest.GenerateBoundary()));
                 }
                 
@@ -136,7 +137,7 @@ namespace {{clientPackage}}
         /// </summary>
         /// <param name="obj">The parameter (header, path, query, form).</param>
         /// <returns>Formatted string.</returns>
-        public string ParameterToString(object obj)
+        public static string ParameterToString(object obj)
         {
             if (obj is DateTime)
                 // Return a formatted date string - Can be customized with Configuration.DateTimeFormat
@@ -157,7 +158,7 @@ namespace {{clientPackage}}
         /// <param name="type">Object type.</param>
         /// <param name="headers">HTTP headers.</param>
         /// <returns>Object representation of the JSON string.</returns>
-        public object Deserialize(DownloadHandler content, Type type)
+        public static object Deserialize(DownloadHandler content, Type type)
         {
             if (type == typeof(Object)) // return an object
             {
@@ -166,7 +167,7 @@ namespace {{clientPackage}}
 
             if (type.Name.StartsWith("System.Nullable`1[[System.DateTime")) // return a datetime object
             {
-                return DateTime.Parse(content,  null, System.Globalization.DateTimeStyles.RoundtripKind);
+                return DateTime.Parse(content.text,  null, System.Globalization.DateTimeStyles.RoundtripKind);
             }
 
             if (type == typeof(String) || type.Name.StartsWith("System.Nullable")) // return primitive type
@@ -190,7 +191,7 @@ namespace {{clientPackage}}
         /// </summary>
         /// <param name="obj">Object.</param>
         /// <returns>JSON string.</returns>
-        public string Serialize(object obj)
+        public static string Serialize(object obj)
         {
             try
             {
@@ -207,7 +208,7 @@ namespace {{clientPackage}}
         /// </summary>
         /// <param name="apiKeyIdentifier">API key identifier (authentication scheme).</param>
         /// <returns>API key with prefix.</returns>
-        public string GetApiKeyWithPrefix (string apiKeyIdentifier)
+        public static string GetApiKeyWithPrefix (string apiKeyIdentifier)
         {
             var apiKeyValue = "";
             Configuration.ApiKey.TryGetValue (apiKeyIdentifier, out apiKeyValue);
@@ -224,7 +225,7 @@ namespace {{clientPackage}}
         /// <param name="queryParams">Query parameters.</param>
         /// <param name="headerParams">Header parameters.</param>
         /// <param name="authSettings">Authentication settings.</param>
-        public void UpdateParamsForAuth(Dictionary<String, String> queryParams, Dictionary<String, String> headerParams, string[] authSettings)
+        public static void UpdateParamsForAuth(Dictionary<String, String> queryParams, Dictionary<String, String> headerParams, string[] authSettings)
         {
             if (authSettings == null || authSettings.Length == 0)
                 return;
