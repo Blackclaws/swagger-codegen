@@ -82,7 +82,7 @@ namespace {{apiPackage}}
     
             // make the HTTP request
             return Configuration.DefaultApiClient.CallApi(path, "{{httpMethod}}", queryParams, postBody, headerParams, formParams, fileParams, authSettings, progressIndicator).Select(webRequest => {
-                if(webRequest.isHttpError) {
+                if(webRequest.isHttpError || webRequest.isNetworkError) {
                     Debug.Log("API Error in {{nickname}}");
                     Debug.Log(webRequest.error);
                     throw new ApiException (webRequest.responseCode, "Error calling {{nickname}}: " + webRequest.error, webRequest.error);

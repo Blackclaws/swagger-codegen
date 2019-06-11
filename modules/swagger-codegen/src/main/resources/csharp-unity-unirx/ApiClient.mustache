@@ -67,7 +67,7 @@ namespace {{clientPackage}}
                     queryBuilder.AddParameter(param.Key, param.Value);
             }
         
-            var request = new UnityWebRequest(UnityWebRequest.EscapeURL(queryBuilder.Query));
+            var request = new UnityWebRequest(queryBuilder.Query);
             
             request.method = method;
    
