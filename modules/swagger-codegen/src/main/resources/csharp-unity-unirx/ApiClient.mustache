@@ -237,7 +237,7 @@ namespace {{clientPackage}}
                 {
                     {{#authMethods}}
                     case "{{name}}":
-                        {{#isApiKey}}{{#isKeyInHeader}}headerParams["{{keyParamName}}"] = GetApiKeyWithPrefix("{{keyParamName}}");{{/isKeyInHeader}}{{#isKeyInQuery}}queryParams["{{keyParamName}}"] = GetApiKeyWithPrefix("{{keyParamName}}");{{/isKeyInQuery}}{{/isApiKey}}{{#isBasic}}headerParams["Authorization"] = "Basic " + Base64Encode(Configuration.Username + ":" + Configuration.Password);{{/isBasic}}
+                        {{#isApiKey}}{{#isKeyInHeader}}headerParams["{{keyParamName}}"] = GetApiKeyWithPrefix("{{name}}");{{/isKeyInHeader}}{{#isKeyInQuery}}queryParams["{{keyParamName}}"] = GetApiKeyWithPrefix("{{name}}");{{/isKeyInQuery}}{{/isApiKey}}{{#isBasic}}headerParams["Authorization"] = "Basic " + Base64Encode(Configuration.Username + ":" + Configuration.Password);{{/isBasic}}
                         {{#isOAuth}}//TODO support oauth{{/isOAuth}}
                         break;
                     {{/authMethods}}
